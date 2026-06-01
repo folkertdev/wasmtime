@@ -1,8 +1,9 @@
 //! The pulley bytecode for fast interpreters.
 
+#![allow(unused_features, unstable_features, incomplete_features)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(pulley_tail_calls, feature(explicit_tail_calls))]
-#![cfg_attr(pulley_tail_calls, allow(incomplete_features, unstable_features))]
+#![cfg_attr(pulley_indirectbr, feature(loop_match))]
 #![deny(missing_docs)]
 #![no_std]
 

@@ -59,7 +59,7 @@ macro_rules! tail_call {
 #[cfg(pulley_assume_llvm_makes_tail_calls)]
 macro_rules! tail_call {
     ($e:expr) => {
-        return $e
+        // return $e
     };
 }
 

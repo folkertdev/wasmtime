@@ -697,7 +697,7 @@ macro_rules! define_extended_decoder {
             )*
         }
 
-        fn decode_one_extended<V>(
+        pub(crate) fn decode_one_extended<V>(
             visitor: &mut V,
         ) -> Result<V::Return, <V::BytecodeStream as BytecodeStream>::Error>
         where

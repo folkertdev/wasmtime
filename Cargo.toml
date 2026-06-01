@@ -213,6 +213,7 @@ check-cfg = [
   'cfg(pulley_tail_calls)',
   'cfg(pulley_assume_llvm_makes_tail_calls)',
   'cfg(pulley_disable_interp_simd)',
+  'cfg(pulley_indirectbr)',
   'cfg(arc_try_new)',
 
   # Activated by `cargo fuzz` when building for fuzzing.

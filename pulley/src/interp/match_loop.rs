@@ -16,23 +16,70 @@
 //! will probably need tweaks to make it more performant.
 
 use super::*;
+use crate::Opcode;
 
 impl Interpreter<'_> {
+    #[unsafe(export_name = "my_very_unique_function")]
     pub fn run(self) -> Done {
-        let mut decoder = Decoder::new();
         let mut visitor = debug::Debug(self);
+        let visitor = &mut visitor;
+
+        let Ok(byte) = u8::decode(visitor.bytecode());
+        let Ok(mut opcode) =
+            Opcode::new(byte).ok_or_else(|| visitor.bytecode().invalid_opcode(byte));
         loop {
-            // Here `decode_one` will call the appropriate `OpVisitor` method on
-            // `self` via the trait implementation in the module above this.
-            // That'll return whether we should keep going or exit the loop,
-            // which is then done here with a conditional `break`.
-            //
-            // This will then continue indefinitely until the bytecode says it's
-            // done. Note that only trusted bytecode is interpreted here.
-            match decoder.decode_one(&mut visitor) {
-                Ok(ControlFlow::Continue(())) => {}
-                Ok(ControlFlow::Break(done)) => break done,
+            macro_rules! dispatch {
+                (
+                    $(
+                        $( #[$attr:meta] )*
+                            $snake_name:ident = $name:ident $( {
+                            $(
+                                $( #[$field_attr:meta] )*
+                                $field:ident : $field_ty:ty
+                            ),*
+                        } )? ;
+                    )*
+                ) => {
+                    #[cfg_attr(pulley_indirectbr, indirect_branch)]
+                    match opcode {
+                        $(
+                            Opcode::$name => {
+                                $(
+                                    $(
+                                        let Ok($field) = <$field_ty>::decode(
+                                            visitor.bytecode(),
+                                        );
+                                    )*
+                                )?
+
+                                let ret = visitor.$snake_name($( $( $field ),* )?);
+                                visitor.after_visit();
+                                match ret {
+                                    ControlFlow::Continue(()) => {
+                                        let Ok(byte) = u8::decode(visitor.bytecode());
+                                        let Ok(o2) =
+                                            Opcode::new(byte).ok_or_else(|| visitor.bytecode().invalid_opcode(byte));
+                                        opcode = o2;
+                                    }
+                                    ControlFlow::Break(done) => break done,
+                                }
+                            },
+                        )*
+                        Opcode::ExtendedOp => {
+                            let Ok(r) = crate::decode::decode_one_extended(visitor);
+                            match r {
+                                ControlFlow::Continue(()) => {}
+                                ControlFlow::Break(done) => break done,
+                            }
+                            let Ok(byte) = u8::decode(visitor.bytecode());
+                            let Ok(o2) =
+                                Opcode::new(byte).ok_or_else(|| visitor.bytecode().invalid_opcode(byte));
+                            opcode = o2;
+                        }
+                    }
+                };
             }
+            for_each_op!(dispatch);
         }
     }
 }
